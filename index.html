@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Meeting Buddy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230F2A2E'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%95%B0%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -18,6 +20,8 @@
     --text-dimmer: rgba(245,239,230,0.34);
     --amber: #E8A33D;
     --amber-soft: rgba(232,163,61,0.18);
+    --cursor-red: #EF4444;
+    --now-blue: #4E9DE0;
     --danger: #D96A5A;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
@@ -125,17 +129,18 @@
   .core-seg{ flex:1; height:100%; }
   .core-seg.on{ background: var(--amber); opacity:0.85; }
   .cursor-line{
-    position:absolute; top:-2px; bottom:-2px; width:2px; background: var(--amber);
-    box-shadow: 0 0 8px rgba(232,163,61,0.9); pointer-events:none;
+    position:absolute; top:-2px; bottom:-2px; width:2px; background: var(--cursor-red);
+    box-shadow: 0 0 8px rgba(239,68,68,0.85); pointer-events:none;
     transform: translateX(-1px);
   }
   .now-line{
-    position:absolute; top:0; bottom:0; width:1px; background: rgba(245,239,230,0.55);
-    pointer-events:none; transform: translateX(-0.5px);
+    position:absolute; top:0; bottom:0; width:2px; background: var(--now-blue);
+    box-shadow: 0 0 6px rgba(78,157,224,0.75);
+    pointer-events:none; transform: translateX(-1px);
   }
   .now-line::after{
     content:''; position:absolute; top:-3px; left:50%; transform:translateX(-50%);
-    width:4px; height:4px; border-radius:50%; background: rgba(245,239,230,0.7);
+    width:5px; height:5px; border-radius:50%; background: var(--now-blue);
   }
 
   /* ---- Add city ---- */
@@ -614,6 +619,12 @@
   }
 
   function tick(){
+    var detected = Intl.DateTimeFormat().resolvedOptions().timeZone || youTz;
+    if(detected !== youTz){
+      youTz = detected;
+      var youRow = rows.find(function(r){ return r.isYou; });
+      if(youRow){ youRow.tz = youTz; saveRows(); renderRows(); return; }
+    }
     updateCursor();
   }
 
@@ -661,12 +672,18 @@
     selectedMinute = currentUTCMinutesOfDay();
     renderAll();
   });
+  var dateFmtCache = {};
+  function getDateLabel(date, tz){
+    if(!dateFmtCache[tz]) dateFmtCache[tz] = new Intl.DateTimeFormat('en-GB', {timeZone:tz, day:'numeric', month:'short', year:'numeric'});
+    return dateFmtCache[tz].format(date);
+  }
+
   document.getElementById('copyBtn').addEventListener('click', function(){
     var instant = getInstant(selectedMinute);
     var lines = rows.map(function(row){
       var info = getLocalInfo(instant, row.tz);
       var timeStr = (info.minute==='00' ? info.hour : (info.hour+':'+info.minute)) + ' ' + (info.dayPeriod||'').toUpperCase();
-      return row.name + ' ' + timeStr;
+      return row.name + ' ' + timeStr + ', ' + getDateLabel(instant, row.tz);
     });
     var text = lines.join('\n');
     var btn = document.getElementById('copyBtn');
@@ -768,6 +785,9 @@
   loadRows(function(saved){
     if(saved && saved.length){
       rows = saved.map(function(r){ return {id:uid(), name:r.name, tz:r.tz, isYou:r.isYou}; });
+      var youRowLoaded = rows.find(function(r){ return r.isYou; });
+      if(youRowLoaded){ youRowLoaded.tz = youTz; }
+      else { rows.unshift({id:uid(), name:'You', tz:youTz, isYou:true}); }
     } else {
       rows = [{id:uid(), name:'You', tz:youTz, isYou:true}];
       DEFAULT_STARTER.forEach(function(tz){
