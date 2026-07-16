@@ -384,10 +384,16 @@
   function saveRows(){
     var data = rows.map(function(r){ return {name:r.name, tz:r.tz, isYou:!!r.isYou}; });
     try{
-      window.storage && window.storage.set(STORE_KEY, JSON.stringify(data), false);
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      return;
     }catch(e){}
+    try{ window.storage && window.storage.set(STORE_KEY, JSON.stringify(data), false); }catch(e){}
   }
   function loadRows(cb){
+    try{
+      var raw = window.localStorage.getItem(STORE_KEY);
+      if(raw){ cb(JSON.parse(raw)); return; }
+    }catch(e){}
     if(!window.storage){ cb(null); return; }
     window.storage.get(STORE_KEY, false).then(function(res){
       cb(res && res.value ? JSON.parse(res.value) : null);
@@ -396,26 +402,7 @@
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  // ---------- Init ----------
   var youTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-  loadRows(function(saved){
-    if(saved && saved.length){
-      rows = saved.map(function(r){ return {id:uid(), name:r.name, tz:r.tz, isYou:r.isYou}; });
-    } else {
-      rows = [{id:uid(), name:'You', tz:youTz, isYou:true}];
-      DEFAULT_STARTER.forEach(function(tz){
-        if(tz !== youTz){
-          var known = COMMON.find(function(c){return c.tz===tz;});
-          rows.push({id:uid(), name: known ? known.name : friendlyTzName(tz), tz: tz, isYou:false});
-        }
-      });
-      saveRows();
-    }
-    buildRuler();
-    renderAll();
-    setInterval(tick, 30000);
-  });
 
   // ---------- Rendering ----------
   var boardEl = document.getElementById('board');
@@ -775,6 +762,25 @@
   });
   document.addEventListener('click', function(e){
     if(!e.target.closest('.search-box')) closeSuggestions();
+  });
+
+  // ---------- Init (runs last, after everything above is defined) ----------
+  loadRows(function(saved){
+    if(saved && saved.length){
+      rows = saved.map(function(r){ return {id:uid(), name:r.name, tz:r.tz, isYou:r.isYou}; });
+    } else {
+      rows = [{id:uid(), name:'You', tz:youTz, isYou:true}];
+      DEFAULT_STARTER.forEach(function(tz){
+        if(tz !== youTz){
+          var known = COMMON.find(function(c){return c.tz===tz;});
+          rows.push({id:uid(), name: known ? known.name : friendlyTzName(tz), tz: tz, isYou:false});
+        }
+      });
+      saveRows();
+    }
+    buildRuler();
+    renderAll();
+    setInterval(tick, 30000);
   });
 
 })();
