@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Meeting Buddy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F2A2E;
+    --bg-2: #0B2124;
+    --panel: #143338;
+    --panel-2: #17393F;
+    --line: rgba(245,239,230,0.10);
+    --text: #F5EFE6;
+    --text-dim: rgba(245,239,230,0.56);
+    --text-dimmer: rgba(245,239,230,0.34);
+    --amber: #E8A33D;
+    --amber-soft: rgba(232,163,61,0.18);
+    --danger: #D96A5A;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; overscroll-behavior-y:none;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(232,163,61,0.07), transparent 45%),
+      radial-gradient(circle at 100% 20%, rgba(92,66,102,0.18), transparent 40%),
+      var(--bg);
+    min-height:100vh;
+    padding: 22px 16px 60px;
+  }
+  .wrap{ max-width: 640px; margin: 0 auto; }
+
+  /* ---- Header ---- */
+  header{ margin-bottom: 18px; }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--amber); font-weight:600; margin: 0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces', serif; font-weight:700; font-optical-sizing:auto;
+    font-size: 30px; line-height:1.05; margin: 0 0 4px; letter-spacing:-0.01em;
+    color: var(--amber);
+  }
+  .sub{ color: var(--text-dim); font-size: 14px; margin:0; }
+
+  /* ---- Day nav / controls bar ---- */
+  .controls{
+    display:flex; align-items:center; gap:8px; margin: 18px 0 14px;
+    flex-wrap: wrap;
+  }
+  .daynav{
+    display:flex; align-items:center; gap:2px; background: var(--panel);
+    border:1px solid var(--line); border-radius: 999px; padding:4px;
+  }
+  .daynav button{
+    width:30px; height:30px; border-radius:999px; border:none; background:transparent;
+    color: var(--text); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .daynav button:hover{ background: rgba(245,239,230,0.08); }
+  .daylabel{
+    font-family:'JetBrains Mono', monospace; font-size:12.5px; padding: 0 8px; min-width:96px; text-align:center; color: var(--text);
+  }
+  .btn{
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color: var(--text);
+    background: var(--panel); border:1px solid var(--line); border-radius:999px;
+    padding: 8px 14px; cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+  .btn:hover{ border-color: rgba(245,239,230,0.28); }
+  .btn.amber{ background: var(--amber); color: #1A1305; border-color: transparent; font-weight:700; }
+  .btn.amber:hover{ filter: brightness(1.06); }
+  .spacer{ flex:1; }
+
+  /* ---- Ruler ---- */
+  .ruler-row{ display:flex; padding: 0 2px; margin-bottom:6px; }
+  .ruler-labels{
+    flex:1; position:relative; height:16px;
+    font-family:'JetBrains Mono', monospace; font-size:10px; color: var(--text-dimmer);
+  }
+  .ruler-labels span{ position:absolute; top:0; transform: translateX(-50%); }
+
+  /* ---- Board / rows ---- */
+  .board{ display:flex; flex-direction:column; gap:10px; }
+  .row{
+    background: var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding: 12px 14px 14px; position:relative;
+  }
+  .row.is-you{ border-color: rgba(232,163,61,0.4); }
+  .row-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px;}
+  .row-id{ min-width:0; }
+  .row-name-line{ display:flex; align-items:center; gap:6px; }
+  .row-name{ font-weight:600; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .you-tag{
+    font-family:'JetBrains Mono', monospace; font-size:9.5px; letter-spacing:0.06em; color:#1A1305;
+    background: var(--amber); border-radius:5px; padding: 1px 5px; font-weight:700; text-transform:uppercase; flex-shrink:0;
+  }
+  .row-sub{ font-size:11.5px; color: var(--text-dim); margin-top:2px; }
+  .row-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .remove-btn{
+    background:transparent; border:none; color: var(--text-dimmer); font-size:18px; line-height:1;
+    cursor:pointer; padding:2px 4px;
+  }
+  .remove-btn:hover{ color: var(--danger); }
+
+  .row-time{ text-align:right; flex-shrink:0; }
+  .time-big{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:22px; line-height:1;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  }
+  .date-line{ font-size:11px; color: var(--text-dim); margin-top:3px; display:flex; gap:5px; justify-content:flex-end; align-items:center;}
+  .day-badge{
+    font-family:'JetBrains Mono', monospace; font-size:9.5px; font-weight:700;
+    background: rgba(232,163,61,0.16); color: var(--amber); border-radius:4px; padding:1px 5px;
+  }
+
+  .track{
+    position:relative; height:34px; border-radius:9px; overflow:hidden;
+    display:flex; touch-action:none; cursor:pointer;
+    box-shadow: inset 0 0 0 1px rgba(245,239,230,0.06);
+  }
+  .seg{ flex:1; height:100%; }
+  .core-band{ position:absolute; left:0; right:0; bottom:0; height:4px; display:flex; }
+  .core-seg{ flex:1; height:100%; }
+  .core-seg.on{ background: var(--amber); opacity:0.85; }
+  .cursor-line{
+    position:absolute; top:-2px; bottom:-2px; width:2px; background: var(--amber);
+    box-shadow: 0 0 8px rgba(232,163,61,0.9); pointer-events:none;
+    transform: translateX(-1px);
+  }
+  .now-line{
+    position:absolute; top:0; bottom:0; width:1px; background: rgba(245,239,230,0.55);
+    pointer-events:none; transform: translateX(-0.5px);
+  }
+  .now-line::after{
+    content:''; position:absolute; top:-3px; left:50%; transform:translateX(-50%);
+    width:4px; height:4px; border-radius:50%; background: rgba(245,239,230,0.7);
+  }
+
+  /* ---- Add city ---- */
+  .add-wrap{ margin-top: 4px; margin-bottom: 18px; position:relative; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; max-height: 74px; overflow-y:auto; }
+  .chip{
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; color: var(--text-dim);
+    background: var(--panel); border:1px solid var(--line); border-radius:999px;
+    padding: 6px 11px; cursor:pointer;
+  }
+  .chip:hover{ border-color: var(--amber); color: var(--text); }
+  .chip.added{ opacity:0.35; pointer-events:none; }
+  .search-box{ position:relative; }
+  .search-box input{
+    width:100%; background: var(--panel); border:1px solid var(--line); border-radius:12px;
+    color: var(--text); font-family:'Inter',sans-serif; font-size:14px; padding: 12px 14px;
+    outline:none;
+  }
+  .search-box input:focus{ border-color: var(--amber); }
+  .suggestions{
+    position:absolute; left:0; right:0; top: calc(100% + 6px); background: var(--panel-2);
+    border:1px solid var(--line); border-radius:12px; max-height:220px; overflow-y:auto;
+    z-index: 20; box-shadow: 0 12px 30px rgba(0,0,0,0.35); display:none;
+  }
+  .suggestions.open{ display:block; }
+  .sug-item{ padding:10px 14px; font-size:13.5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .sug-item:hover{ background: rgba(232,163,61,0.12); }
+  .sug-item .tz-name{ color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:11px; }
+
+  .empty{
+    text-align:center; padding: 40px 20px; color: var(--text-dim); font-size:14px;
+    border:1px dashed var(--line); border-radius:16px;
+  }
+
+  footer{ margin-top:26px; text-align:center; }
+  footer p{ font-size:11.5px; color: var(--text-dimmer); }
+
+  @media (max-width: 420px){
+    h1{ font-size:26px; }
+    .time-big{ font-size:19px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Meeting Buddy</p>
+    <h1>Find a time that works<br>everywhere.</h1>
+    <p class="sub">Drag the line to any hour. Every clock moves with it.</p>
+  </header>
+
+  <div class="add-wrap">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Add a city or timezone…" autocomplete="off">
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="controls">
+    <div class="daynav">
+      <button id="prevDay" aria-label="Previous day">‹</button>
+      <div class="daylabel" id="dayLabel">Today</div>
+      <button id="nextDay" aria-label="Next day">›</button>
+    </div>
+    <button class="btn" id="nowBtn">Now</button>
+    <div class="spacer"></div>
+    <button class="btn amber" id="copyBtn">Copy times</button>
+  </div>
+
+  <div class="ruler-row">
+    <div class="ruler-labels" id="rulerLabels"></div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <footer>
+    <p>Times update as you drag. Your list is saved for next time.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Common quick-add cities ----------
+  var COMMON = [
+    {name:"Beirut", tz:"Asia/Beirut"},
+    {name:"Minneapolis", tz:"America/Chicago"},
+    {name:"Paris", tz:"Europe/Paris"}
+  ];
+
+  var DEFAULT_STARTER = ["America/New_York","Europe/London","Asia/Tokyo"];
+
+  // ---------- Larger city database (city name -> IANA zone) ----------
+  // Many cities share a zone with a larger reference city (e.g. Minneapolis
+  // uses America/Chicago) so they won't appear by name in Intl's raw zone
+  // list — this table makes them searchable anyway.
+  var CITY_DB = [
+    ["New York","America/New_York"],["Boston","America/New_York"],["Miami","America/New_York"],
+    ["Atlanta","America/New_York"],["Washington DC","America/New_York"],["Philadelphia","America/New_York"],
+    ["Detroit","America/New_York"],["Toronto","America/Toronto"],["Montreal","America/Toronto"],
+    ["Ottawa","America/Toronto"],["Chicago","America/Chicago"],["Minneapolis","America/Chicago"],
+    ["Dallas","America/Chicago"],["Houston","America/Chicago"],["Austin","America/Chicago"],
+    ["New Orleans","America/Chicago"],["Kansas City","America/Chicago"],["St. Louis","America/Chicago"],
+    ["Winnipeg","America/Winnipeg"],["Mexico City","America/Mexico_City"],["Guadalajara","America/Mexico_City"],
+    ["Denver","America/Denver"],["Salt Lake City","America/Denver"],["Phoenix","America/Phoenix"],
+    ["Calgary","America/Edmonton"],["Edmonton","America/Edmonton"],["Los Angeles","America/Los_Angeles"],
+    ["San Francisco","America/Los_Angeles"],["Seattle","America/Los_Angeles"],["Portland","America/Los_Angeles"],
+    ["San Diego","America/Los_Angeles"],["Las Vegas","America/Los_Angeles"],["Vancouver","America/Vancouver"],
+    ["Anchorage","America/Anchorage"],["Honolulu","Pacific/Honolulu"],
+    ["Bogota","America/Bogota"],["Lima","America/Lima"],["Quito","America/Guayaquil"],
+    ["Santiago","America/Santiago"],["Buenos Aires","America/Argentina/Buenos_Aires"],
+    ["Montevideo","America/Montevideo"],["Sao Paulo","America/Sao_Paulo"],["Rio de Janeiro","America/Sao_Paulo"],
+    ["Brasilia","America/Sao_Paulo"],["Caracas","America/Caracas"],["Panama City","America/Panama"],
+    ["San Jose","America/Costa_Rica"],["Havana","America/Havana"],["Kingston","America/Jamaica"],
+    ["London","Europe/London"],["Dublin","Europe/Dublin"],["Edinburgh","Europe/London"],
+    ["Lisbon","Europe/Lisbon"],["Madrid","Europe/Madrid"],["Barcelona","Europe/Madrid"],
+    ["Paris","Europe/Paris"],["Brussels","Europe/Brussels"],["Amsterdam","Europe/Amsterdam"],
+    ["Berlin","Europe/Berlin"],["Munich","Europe/Berlin"],["Frankfurt","Europe/Berlin"],
+    ["Hamburg","Europe/Berlin"],["Zurich","Europe/Zurich"],["Geneva","Europe/Zurich"],
+    ["Vienna","Europe/Vienna"],["Rome","Europe/Rome"],["Milan","Europe/Rome"],["Naples","Europe/Rome"],
+    ["Stockholm","Europe/Stockholm"],["Oslo","Europe/Oslo"],["Copenhagen","Europe/Copenhagen"],
+    ["Helsinki","Europe/Helsinki"],["Reykjavik","Atlantic/Reykjavik"],["Warsaw","Europe/Warsaw"],
+    ["Prague","Europe/Prague"],["Budapest","Europe/Budapest"],["Athens","Europe/Athens"],
+    ["Bucharest","Europe/Bucharest"],["Sofia","Europe/Sofia"],["Kyiv","Europe/Kyiv"],
+    ["Moscow","Europe/Moscow"],["Istanbul","Europe/Istanbul"],["Zagreb","Europe/Zagreb"],
+    ["Belgrade","Europe/Belgrade"],
+    ["Beirut","Asia/Beirut"],["Tel Aviv","Asia/Jerusalem"],["Jerusalem","Asia/Jerusalem"],
+    ["Amman","Asia/Amman"],["Damascus","Asia/Damascus"],["Riyadh","Asia/Riyadh"],["Jeddah","Asia/Riyadh"],
+    ["Doha","Asia/Qatar"],["Dubai","Asia/Dubai"],["Abu Dhabi","Asia/Dubai"],["Kuwait City","Asia/Kuwait"],
+    ["Muscat","Asia/Muscat"],["Tehran","Asia/Tehran"],["Baghdad","Asia/Baghdad"],
+    ["Cairo","Africa/Cairo"],["Casablanca","Africa/Casablanca"],["Algiers","Africa/Algiers"],
+    ["Tunis","Africa/Tunis"],["Lagos","Africa/Lagos"],["Abuja","Africa/Lagos"],["Accra","Africa/Accra"],
+    ["Nairobi","Africa/Nairobi"],["Addis Ababa","Africa/Addis_Ababa"],["Johannesburg","Africa/Johannesburg"],
+    ["Cape Town","Africa/Johannesburg"],["Kigali","Africa/Kigali"],
+    ["Karachi","Asia/Karachi"],["Islamabad","Asia/Karachi"],["Lahore","Asia/Karachi"],
+    ["Mumbai","Asia/Kolkata"],["Delhi","Asia/Kolkata"],["Bangalore","Asia/Kolkata"],
+    ["Hyderabad","Asia/Kolkata"],["Chennai","Asia/Kolkata"],["Kolkata","Asia/Kolkata"],
+    ["Dhaka","Asia/Dhaka"],["Colombo","Asia/Colombo"],["Kathmandu","Asia/Kathmandu"],
+    ["Tashkent","Asia/Tashkent"],["Almaty","Asia/Almaty"],
+    ["Bangkok","Asia/Bangkok"],["Hanoi","Asia/Bangkok"],["Ho Chi Minh City","Asia/Ho_Chi_Minh"],
+    ["Phnom Penh","Asia/Phnom_Penh"],["Jakarta","Asia/Jakarta"],["Bali","Asia/Makassar"],
+    ["Kuala Lumpur","Asia/Kuala_Lumpur"],["Singapore","Asia/Singapore"],["Manila","Asia/Manila"],
+    ["Hong Kong","Asia/Hong_Kong"],["Shanghai","Asia/Shanghai"],["Beijing","Asia/Shanghai"],
+    ["Shenzhen","Asia/Shanghai"],["Taipei","Asia/Taipei"],["Seoul","Asia/Seoul"],
+    ["Tokyo","Asia/Tokyo"],["Osaka","Asia/Tokyo"],["Ulaanbaatar","Asia/Ulaanbaatar"],
+    ["Perth","Australia/Perth"],["Adelaide","Australia/Adelaide"],["Darwin","Australia/Darwin"],
+    ["Sydney","Australia/Sydney"],["Melbourne","Australia/Melbourne"],["Brisbane","Australia/Brisbane"],
+    ["Canberra","Australia/Sydney"],["Auckland","Pacific/Auckland"],["Wellington","Pacific/Auckland"],
+    ["Suva","Pacific/Fiji"]
+  ];
+
+  // ---------- State ----------
+  var rows = [];               // {id, name, tz, isYou}
+  var refDate = startOfTodayUTC();
+  var selectedMinute = currentUTCMinutesOfDay();
+  var STORE_KEY = "tz-buddy-rows-v1";
+
+  // ---------- Time helpers ----------
+  function startOfTodayUTC(){
+    var n = new Date();
+    return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
+  }
+  function currentUTCMinutesOfDay(){
+    var n = new Date();
+    return n.getUTCHours()*60 + n.getUTCMinutes();
+  }
+  function isSameUTCDate(a,b){ return a.getTime() === b.getTime(); }
+  function addDays(date, n){ return new Date(date.getTime() + n*86400000); }
+  function getInstant(minute){ return new Date(refDate.getTime() + minute*60000); }
+  function friendlyTzName(tz){
+    var parts = tz.split("/");
+    var last = parts[parts.length-1].replace(/_/g," ");
+    return last;
+  }
+
+  var hourFmtCache = {};
+  function getHourFmt(tz){
+    if(!hourFmtCache[tz]) hourFmtCache[tz] = new Intl.DateTimeFormat('en-GB',{timeZone:tz, hour:'2-digit', minute:'2-digit', hour12:false});
+    return hourFmtCache[tz];
+  }
+  function getLocalHourFloat(date, tz){
+    var parts = getHourFmt(tz).formatToParts(date);
+    var h=0,m=0;
+    for(var i=0;i<parts.length;i++){
+      if(parts[i].type==='hour') h = parseInt(parts[i].value,10);
+      if(parts[i].type==='minute') m = parseInt(parts[i].value,10);
+    }
+    if(h===24) h=0;
+    return h + m/60;
+  }
+
+  var infoFmtCache = {};
+  function getInfoFmt(tz){
+    if(!infoFmtCache[tz]) infoFmtCache[tz] = new Intl.DateTimeFormat('en-US',{
+      timeZone: tz, hour:'numeric', minute:'2-digit', hour12:true,
+      weekday:'short', month:'short', day:'numeric'
+    });
+    return infoFmtCache[tz];
+  }
+  function getLocalInfo(date, tz){
+    var parts = getInfoFmt(tz).formatToParts(date);
+    var o = {};
+    for(var i=0;i<parts.length;i++) o[parts[i].type] = parts[i].value;
+    return o;
+  }
+
+  var offsetFmtCache = {};
+  function getOffsetLabel(date, tz){
+    if(!offsetFmtCache[tz]) offsetFmtCache[tz] = new Intl.DateTimeFormat('en-US',{timeZone:tz, timeZoneName:'shortOffset'});
+    try{
+      var parts = offsetFmtCache[tz].formatToParts(date);
+      for(var i=0;i<parts.length;i++){ if(parts[i].type==='timeZoneName') return parts[i].value.replace('GMT','UTC'); }
+    }catch(e){}
+    return '';
+  }
+
+  // ---------- Color ----------
+  var STOPS = [
+    [0,   [20,24,58]],
+    [5,   [20,24,58]],
+    [7,   [242,200,121]],
+    [12,  [252,239,217]],
+    [17,  [242,200,121]],
+    [19.5,[92,66,102]],
+    [22,  [20,24,58]],
+    [24,  [20,24,58]]
+  ];
+  function hourColor(h){
+    for(var i=0;i<STOPS.length-1;i++){
+      var h0=STOPS[i][0], c0=STOPS[i][1], h1=STOPS[i+1][0], c1=STOPS[i+1][1];
+      if(h>=h0 && h<=h1){
+        var t=(h-h0)/(h1-h0);
+        var r = Math.round(c0[0]+(c1[0]-c0[0])*t);
+        var g = Math.round(c0[1]+(c1[1]-c0[1])*t);
+        var b = Math.round(c0[2]+(c1[2]-c0[2])*t);
+        return 'rgb('+r+','+g+','+b+')';
+      }
+    }
+    return 'rgb(20,24,58)';
+  }
+
+  // ---------- Storage ----------
+  function saveRows(){
+    var data = rows.map(function(r){ return {name:r.name, tz:r.tz, isYou:!!r.isYou}; });
+    try{
+      window.storage && window.storage.set(STORE_KEY, JSON.stringify(data), false);
+    }catch(e){}
+  }
+  function loadRows(cb){
+    if(!window.storage){ cb(null); return; }
+    window.storage.get(STORE_KEY, false).then(function(res){
+      cb(res && res.value ? JSON.parse(res.value) : null);
+    }).catch(function(){ cb(null); });
+  }
+
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+
+  // ---------- Init ----------
+  var youTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+  loadRows(function(saved){
+    if(saved && saved.length){
+      rows = saved.map(function(r){ return {id:uid(), name:r.name, tz:r.tz, isYou:r.isYou}; });
+    } else {
+      rows = [{id:uid(), name:'You', tz:youTz, isYou:true}];
+      DEFAULT_STARTER.forEach(function(tz){
+        if(tz !== youTz){
+          var known = COMMON.find(function(c){return c.tz===tz;});
+          rows.push({id:uid(), name: known ? known.name : friendlyTzName(tz), tz: tz, isYou:false});
+        }
+      });
+      saveRows();
+    }
+    buildRuler();
+    renderAll();
+    setInterval(tick, 30000);
+  });
+
+  // ---------- Rendering ----------
+  var boardEl = document.getElementById('board');
+  var rulerEl = document.getElementById('rulerLabels');
+
+  function buildRuler(){
+    rulerEl.innerHTML = '';
+    var hours = [0,3,6,9,12,15,18,21];
+    hours.forEach(function(h){
+      var span = document.createElement('span');
+      span.style.left = (h/24*100)+'%';
+      var label = h===0 ? '12A' : h===12 ? '12P' : h>12 ? (h-12)+'P' : h+'A';
+      span.textContent = label;
+      rulerEl.appendChild(span);
+    });
+  }
+
+  function renderAll(){
+    updateDayLabel();
+    renderRows();
+  }
+
+  function updateDayLabel(){
+    var todayUTC = startOfTodayUTC();
+    var diffDays = Math.round((refDate.getTime()-todayUTC.getTime())/86400000);
+    var label = document.getElementById('dayLabel');
+    if(diffDays===0) label.textContent = 'Today';
+    else {
+      var fmt = new Intl.DateTimeFormat('en-US', {weekday:'short', month:'short', day:'numeric'});
+      label.textContent = fmt.format(refDate);
+    }
+  }
+
+  function renderRows(){
+    boardEl.innerHTML = '';
+    if(rows.length===0){
+      var empty = document.createElement('div');
+      empty.className='empty';
+      empty.textContent = 'No cities yet. Add one below to get started.';
+      boardEl.appendChild(empty);
+      renderChips();
+      return;
+    }
+    rows.forEach(function(row){
+      boardEl.appendChild(buildRowEl(row));
+    });
+    updateCursor();
+    renderChips();
+  }
+
+  function buildRowEl(row){
+    var el = document.createElement('div');
+    el.className = 'row' + (row.isYou ? ' is-you' : '');
+    el.dataset.id = row.id;
+
+    var top = document.createElement('div');
+    top.className = 'row-top';
+
+    var idWrap = document.createElement('div');
+    idWrap.className = 'row-id';
+    var nameLine = document.createElement('div');
+    nameLine.className = 'row-name-line';
+    var nameEl = document.createElement('span');
+    nameEl.className = 'row-name';
+    nameEl.textContent = row.name;
+    nameLine.appendChild(nameEl);
+    if(row.isYou){
+      var tag = document.createElement('span');
+      tag.className = 'you-tag';
+      tag.textContent = 'You';
+      nameLine.appendChild(tag);
+    }
+    idWrap.appendChild(nameLine);
+    var sub = document.createElement('div');
+    sub.className = 'row-sub';
+    sub.textContent = friendlyTzName(row.tz) + ' · ' + getOffsetLabel(getInstant(selectedMinute), row.tz);
+    sub.dataset.role='sub';
+    idWrap.appendChild(sub);
+    top.appendChild(idWrap);
+
+    var right = document.createElement('div');
+    right.style.display='flex'; right.style.alignItems='flex-start'; right.style.gap='8px';
+
+    var timeWrap = document.createElement('div');
+    timeWrap.className = 'row-time';
+    var big = document.createElement('div');
+    big.className = 'time-big';
+    big.dataset.role='big';
+    timeWrap.appendChild(big);
+    var dline = document.createElement('div');
+    dline.className = 'date-line';
+    dline.dataset.role='dateline';
+    timeWrap.appendChild(dline);
+    right.appendChild(timeWrap);
+
+    var rm = document.createElement('button');
+    rm.className = 'remove-btn';
+    rm.innerHTML = '&times;';
+    rm.title = 'Remove';
+    rm.addEventListener('click', function(){ removeRow(row.id); });
+    right.appendChild(rm);
+
+    top.appendChild(right);
+    el.appendChild(top);
+
+    var track = document.createElement('div');
+    track.className = 'track';
+    track.dataset.role='track';
+
+    for(var i=0;i<48;i++){
+      var mid = (i+0.5)/48*24;
+      var instant = new Date(refDate.getTime() + (i*30+15)*60000);
+      var hf = getLocalHourFloat(instant, row.tz);
+      var seg = document.createElement('div');
+      seg.className='seg';
+      seg.style.background = hourColor(hf);
+      track.appendChild(seg);
+    }
+
+    var coreBand = document.createElement('div');
+    coreBand.className = 'core-band';
+    for(var j=0;j<48;j++){
+      var instant2 = new Date(refDate.getTime() + (j*30+15)*60000);
+      var hf2 = getLocalHourFloat(instant2, row.tz);
+      var cseg = document.createElement('div');
+      cseg.className = 'core-seg' + ((hf2>=9 && hf2<18) ? ' on' : '');
+      coreBand.appendChild(cseg);
+    }
+    track.appendChild(coreBand);
+
+    var nowLine = document.createElement('div');
+    nowLine.className = 'now-line';
+    nowLine.dataset.role='nowline';
+    track.appendChild(nowLine);
+
+    var cursor = document.createElement('div');
+    cursor.className = 'cursor-line';
+    cursor.dataset.role='cursor';
+    track.appendChild(cursor);
+
+    makeDraggable(track);
+    el.appendChild(track);
+
+    return el;
+  }
+
+  function removeRow(id){
+    rows = rows.filter(function(r){ return r.id!==id; });
+    saveRows();
+    renderRows();
+  }
+
+  // ---------- Cursor / time updates (cheap, called on drag) ----------
+  function updateCursor(){
+    var instant = getInstant(selectedMinute);
+    var pct = (selectedMinute/1440*100)+'%';
+    var todayUTC = startOfTodayUTC();
+    var isToday = isSameUTCDate(refDate, todayUTC);
+    var nowPct = (currentUTCMinutesOfDay()/1440*100)+'%';
+
+    var youRow = rows.find(function(r){return r.isYou;}) || rows[0];
+    var youDateStr = youRow ? getLocalInfo(instant, youRow.tz).weekday+getLocalInfo(instant, youRow.tz).day : null;
+
+    var rowEls = boardEl.querySelectorAll('.row');
+    rowEls.forEach(function(rowEl){
+      var id = rowEl.dataset.id;
+      var row = rows.find(function(r){return r.id===id;});
+      if(!row) return;
+      var info = getLocalInfo(instant, row.tz);
+      var big = rowEl.querySelector('[data-role="big"]');
+      big.textContent = info.hour + ':' + info.minute + ' ' + (info.dayPeriod||'').toUpperCase();
+      var dline = rowEl.querySelector('[data-role="dateline"]');
+      dline.innerHTML = '';
+      var span = document.createElement('span');
+      span.textContent = info.weekday + ', ' + info.month + ' ' + info.day;
+      dline.appendChild(span);
+      var thisDateStr = info.weekday+info.day;
+      if(youDateStr && thisDateStr !== youDateStr){
+        var diffMs = 0;
+        var badge = document.createElement('span');
+        badge.className='day-badge';
+        // determine +1 / -1 relative to you by comparing actual date numbers via a UTC-based day index
+        badge.textContent = dayDiffLabel(instant, youRow.tz, row.tz);
+        dline.appendChild(badge);
+      }
+      var sub = rowEl.querySelector('[data-role="sub"]');
+      sub.textContent = friendlyTzName(row.tz) + ' · ' + getOffsetLabel(instant, row.tz);
+
+      var cursor = rowEl.querySelector('[data-role="cursor"]');
+      cursor.style.left = pct;
+      var nowLine = rowEl.querySelector('[data-role="nowline"]');
+      if(isToday){ nowLine.style.display='block'; nowLine.style.left = nowPct; }
+      else { nowLine.style.display='none'; }
+    });
+  }
+
+  function dayDiffLabel(instant, tzA, tzB){
+    // local calendar-day index difference between tzB and tzA at this instant
+    function dayIndex(tz){
+      var f = new Intl.DateTimeFormat('en-CA', {timeZone:tz, year:'numeric', month:'2-digit', day:'2-digit'});
+      var parts = f.formatToParts(instant);
+      var o={}; parts.forEach(function(p){o[p.type]=p.value;});
+      return Date.UTC(parseInt(o.year), parseInt(o.month)-1, parseInt(o.day))/86400000;
+    }
+    var diff = dayIndex(tzB) - dayIndex(tzA);
+    if(diff>0) return '+'+diff+'d';
+    if(diff<0) return diff+'d';
+    return '';
+  }
+
+  function tick(){
+    updateCursor();
+  }
+
+  // ---------- Dragging ----------
+  function makeDraggable(track){
+    var dragging = false;
+    var rect = null;
+
+    function fromClientX(clientX){
+      var x = clientX - rect.left;
+      var frac = Math.min(1, Math.max(0, x/rect.width));
+      selectedMinute = Math.round(frac*1440/15)*15;
+      if(selectedMinute>=1440) selectedMinute = 1439;
+      updateCursor();
+    }
+
+    track.addEventListener('pointerdown', function(e){
+      dragging = true;
+      rect = track.getBoundingClientRect();
+      track.setPointerCapture(e.pointerId);
+      fromClientX(e.clientX);
+    });
+    track.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      fromClientX(e.clientX);
+    });
+    track.addEventListener('pointerup', function(e){
+      dragging = false;
+      try{ track.releasePointerCapture(e.pointerId); }catch(err){}
+    });
+    track.addEventListener('pointercancel', function(){ dragging = false; });
+  }
+
+  // ---------- Day nav / now / copy ----------
+  document.getElementById('prevDay').addEventListener('click', function(){
+    refDate = addDays(refDate, -1);
+    renderAll();
+  });
+  document.getElementById('nextDay').addEventListener('click', function(){
+    refDate = addDays(refDate, 1);
+    renderAll();
+  });
+  document.getElementById('nowBtn').addEventListener('click', function(){
+    refDate = startOfTodayUTC();
+    selectedMinute = currentUTCMinutesOfDay();
+    renderAll();
+  });
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var instant = getInstant(selectedMinute);
+    var lines = rows.map(function(row){
+      var info = getLocalInfo(instant, row.tz);
+      var timeStr = (info.minute==='00' ? info.hour : (info.hour+':'+info.minute)) + ' ' + (info.dayPeriod||'').toUpperCase();
+      return row.name + ' ' + timeStr;
+    });
+    var text = lines.join('\n');
+    var btn = document.getElementById('copyBtn');
+    var original = btn.textContent;
+    function done(ok){
+      btn.textContent = ok ? 'Copied ✓' : 'Copy failed';
+      setTimeout(function(){ btn.textContent = original; }, 1600);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){done(true);}).catch(function(){done(false);});
+    } else {
+      done(false);
+    }
+  });
+
+  // ---------- Add city ----------
+  var searchInput = document.getElementById('searchInput');
+  var suggestionsEl = document.getElementById('suggestions');
+  var chipsEl = document.getElementById('chips');
+  var allTimezones = [];
+  try{
+    allTimezones = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : [];
+  }catch(e){ allTimezones = []; }
+
+  function renderChips(){
+    chipsEl.innerHTML = '';
+    var activeTz = rows.map(function(r){return r.tz;});
+    COMMON.forEach(function(c){
+      var chip = document.createElement('div');
+      chip.className = 'chip' + (activeTz.indexOf(c.tz)>-1 ? ' added':'');
+      chip.textContent = c.name;
+      chip.addEventListener('click', function(){ addCity(c.name, c.tz); });
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function addCity(name, tz){
+    if(rows.some(function(r){return r.tz===tz;})) return;
+    rows.push({id:uid(), name:name, tz:tz, isYou:false});
+    saveRows();
+    renderRows();
+  }
+
+  function closeSuggestions(){ suggestionsEl.classList.remove('open'); suggestionsEl.innerHTML=''; }
+
+  searchInput.addEventListener('input', function(){
+    var q = searchInput.value.trim().toLowerCase();
+    if(q.length<2){ closeSuggestions(); return; }
+
+    var results = []; // {name, tz}
+    var seenTz = {};
+
+    // 1. City database matches (by city name) — these come first since
+    //    they're the friendliest results.
+    CITY_DB.forEach(function(pair){
+      var name = pair[0], tz = pair[1];
+      if(name.toLowerCase().indexOf(q)>-1){
+        var key = name+'|'+tz;
+        if(!seenTz[key]){ seenTz[key]=true; results.push({name:name, tz:tz}); }
+      }
+    });
+
+    // 2. Raw IANA zone matches (covers zone ids / regions not in the city db)
+    allTimezones.forEach(function(tz){
+      if(results.length>=10) return;
+      if(tz.toLowerCase().indexOf(q)>-1 || friendlyTzName(tz).toLowerCase().indexOf(q)>-1){
+        var key2 = friendlyTzName(tz)+'|'+tz;
+        if(!seenTz[key2]){ seenTz[key2]=true; results.push({name:friendlyTzName(tz), tz:tz}); }
+      }
+    });
+
+    var matches = results.slice(0,10);
+    if(matches.length===0){ closeSuggestions(); return; }
+    suggestionsEl.innerHTML = '';
+    matches.forEach(function(m){
+      var item = document.createElement('div');
+      item.className='sug-item';
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = m.name;
+      var tzSpan = document.createElement('span');
+      tzSpan.className='tz-name';
+      tzSpan.textContent = m.tz;
+      item.appendChild(nameSpan);
+      item.appendChild(tzSpan);
+      item.addEventListener('click', function(){
+        addCity(m.name, m.tz);
+        searchInput.value='';
+        closeSuggestions();
+      });
+      suggestionsEl.appendChild(item);
+    });
+    suggestionsEl.classList.add('open');
+  });
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.search-box')) closeSuggestions();
+  });
+
+})();
+</script>
+</body>
+</html>
