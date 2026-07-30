@@ -705,17 +705,21 @@
       if(starts.length>=10) break;
     }
     var results = starts.concat(contains).slice(0,10);
+    var tzSeen = {};
+    for(var t=0;t<results.length;t++){ tzSeen[results[t].tz] = true; }
 
     // 2. Raw IANA zone matches (covers zone ids not in the city db), only if few city results
     if(results.length<6){
       for(var j=0;j<allTimezones.length;j++){
         if(results.length>=10) break;
         var tzId = allTimezones[j];
+        if(tzSeen[tzId]) continue;
         var fname = friendlyTzName(tzId);
         if(tzId.toLowerCase().indexOf(q)>-1 || fname.toLowerCase().indexOf(q)>-1){
           var key2 = fname+'||'+tzId;
           if(seen[key2]) continue;
           seen[key2] = true;
+          tzSeen[tzId] = true;
           results.push({name:fname, country:'', tz:tzId});
         }
       }
